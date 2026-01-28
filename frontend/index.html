@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ReferralFlow | Intelligent Job Automation</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&family=Inter:wght@300;400;500;600&display=swap"
+        rel="stylesheet">
+    <link rel="stylesheet" href="/static/style.css">
+    <script src="https://unpkg.com/lucide@latest"></script>
+</head>
+
+<body>
+    <div class="app-container">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="logo">
+                <div class="logo-icon">
+                    <i data-lucide="zap"></i>
+                </div>
+                <span>ReferralFlow</span>
+            </div>
+            <nav class="nav-menu">
+                <a href="#" class="nav-item active" data-tab="dashboard">
+                    <i data-lucide="layout-dashboard"></i>
+                    <span>Dashboard</span>
+                </a>
+                <a href="#" class="nav-item" data-tab="campaigns">
+                    <i data-lucide="send"></i>
+                    <span>Campaigns</span>
+                </a>
+                <a href="#" class="nav-item" data-tab="history">
+                    <i data-lucide="history"></i>
+                    <span>History</span>
+                </a>
+                <a href="#" class="nav-item" data-tab="settings">
+                    <i data-lucide="settings"></i>
+                    <span>Settings</span>
+                </a>
+            </nav>
+            <div class="user-profile">
+                <div class="avatar">NV</div>
+                <div class="user-info">
+                    <span class="name">Naman Vishishtha</span>
+                    <span class="status">Premium User</span>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <header class="top-bar">
+                <div class="breadcrumb">
+                    <span class="muted">Overview /</span> Dashboard
+                </div>
+                <div class="actions">
+                    <button class="btn btn-secondary">
+                        <i data-lucide="help-circle"></i>
+                        Docs
+                    </button>
+                    <button class="btn btn-primary" id="openUploadBtn">
+                        <i data-lucide="plus"></i>
+                        New Campaign
+                    </button>
+                </div>
+            </header>
+
+            <section class="dashboard-grid">
+                <!-- Status Cards -->
+                <div class="stats-row">
+                    <div class="stat-card">
+                        <div class="stat-icon purple">
+                            <i data-lucide="file-text"></i>
+                        </div>
+                        <div class="stat-data">
+                            <h3>Resumes</h3>
+                            <p class="value" id="stats-resumes">12</p>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon blue">
+                            <i data-lucide="search"></i>
+                        </div>
+                        <div class="stat-data">
+                            <h3>Jobs Found</h3>
+                            <p class="value" id="stats-jobs">48</p>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon green">
+                            <i data-lucide="mail"></i>
+                        </div>
+                        <div class="stat-data">
+                            <h3>Applications Sent</h3>
+                            <p class="value" id="stats-sent">32</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Main Section: Activity & Upload -->
+                <div class="content-row">
+                    <div class="card p-0 overflow-hidden main-activity">
+                        <div class="card-header">
+                            <h2>Recent Activity</h2>
+                            <span class="badge">Live</span>
+                        </div>
+                        <div class="activity-list" id="activityList">
+                            <div class="activity-item">
+                                <div class="activity-icon"><i data-lucide="check-circle"></i></div>
+                                <div class="activity-text">
+                                    <strong>Resume Uploaded</strong>
+                                    <span>akash.pdf was successfully processed.</span>
+                                </div>
+                                <div class="activity-time">2m ago</div>
+                            </div>
+                            <!-- More items will be injected -->
+                        </div>
+                    </div>
+
+                    <div class="card upload-card">
+                        <div class="card-header">
+                            <h2>Instant Scan</h2>
+                        </div>
+                        <div class="upload-zone" id="dropZone">
+                            <input type="file" id="fileInput" hidden accept=".pdf,.docx">
+                            <div class="upload-content">
+                                <div class="upload-icon-pulse">
+                                    <i data-lucide="upload-cloud"></i>
+                                </div>
+                                <h3>Drop your resume here</h3>
+                                <p>Support for PDF and DOCX formats</p>
+                                <button class="btn btn-outline"
+                                    onclick="document.getElementById('fileInput').click()">Select File</button>
+                            </div>
+                        </div>
+                        <div class="email-input-group">
+                            <label for="userEmail">Target Email for Outreach</label>
+                            <input type="email" id="userEmail" placeholder="e.g. yourname@gmail.com"
+                                value="namanvashi@gmail.com">
+                        </div>
+                        <div class="upload-status hidden" id="uploadStatus">
+                            <div class="progress-bar-container">
+                                <div class="progress-bar" id="progressBar"></div>
+                            </div>
+                            <p id="statusText">Uploading...</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Jobs Table -->
+                <div class="content-row">
+                    <div class="card full-width">
+                        <div class="card-header">
+                            <h2>Discovered Opportunities</h2>
+                            <div class="card-actions">
+                                <button class="btn btn-icon"><i data-lucide="filter"></i></button>
+                                <button class="btn btn-icon"><i data-lucide="refresh-cw"></i></button>
+                            </div>
+                        </div>
+                        <div class="table-container">
+                            <table id="jobsTable">
+                                <thead>
+                                    <tr>
+                                        <th>Role</th>
+                                        <th>Company</th>
+                                        <th>Location</th>
+                                        <th>Status</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <!-- Mock data/dynamic data -->
+                                    <tr>
+                                        <td>
+                                            <div class="job-title">Senior Frontend Engineer</div>
+                                        </td>
+                                        <td>Google</td>
+                                        <td>Mountain View, CA</td>
+                                        <td><span class="status-pill draft">Drafting</span></td>
+                                        <td><button class="btn btn-icon btn-small"><i data-lucide="eye"></i></button>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <!-- Notification system -->
+    <div id="notification-container"></div>
+
+    <script src="/static/app.js"></script>
+    <script>
+        lucide.createIcons();
+    </script>
+</body>
+
+</html>

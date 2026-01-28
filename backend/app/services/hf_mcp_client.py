@@ -1,4 +1,6 @@
 import httpx
+import json
+import re
 from tenacity import retry, stop_after_attempt, wait_exponential, retry_if_exception_type
 from typing import Any, Dict, Optional
 from app.core.config import settings
@@ -13,31 +15,60 @@ class MCPClientError(Exception):
 
 @retry(stop=stop_after_attempt(3), wait=wait_exponential(multiplier=1, min=2, max=10),
        retry=retry_if_exception_type((httpx.RequestError, MCPClientError)))
-def extract_entities_from_text(text: str, timeout: int = 30) -> Dict[str, Any]:
-    """Send text to a Hugging Face MCP server endpoint and return parsed entities.
-
-    Expects the MCP server to expose a JSON POST endpoint that accepts `text` and returns
-    structured JSON with fields like `skills`, `experience`, `positions`.
-
-    Retries on transient network errors.
+def extract_entities_from_text(text: str, timeout: int = 60) -> Dict[str, Any]:
+    """Send text to Hugging Face Inference API and return parsed JSON entities.
+    
+    Uses an LLM (Mistral/Llama) to extract structured data from resume text.
     """
-    if not settings.HF_MCP_URL:
-        logger.error("HF_MCP_URL is not configured")
-        raise MCPClientError("MCP server URL not configured")
+    if not settings.HF_MCP_TOKEN:
+        logger.error("HF_MCP_TOKEN is not configured")
+        raise MCPClientError("Hugging Face API token not configured")
 
-    headers = {"Authorization": f"Bearer {settings.HF_MCP_TOKEN}"} if settings.HF_MCP_TOKEN else {}
-    payload = {"text": text}
+    model_url = f"{settings.HF_MCP_URL.rstrip('/')}/{settings.HF_MODEL_ID}"
+    headers = {"Authorization": f"Bearer {settings.HF_MCP_TOKEN}"}
+    
+    prompt = f"""<s>[INST] Extract the following information from this resume text and return it ONLY as a valid JSON object:
+- candidate_name
+- top_skills (list of strings)
+- years_of_experience (as a number or string)
+- positions (list of job titles the candidate is qualified for)
+
+Resume Text:
+{text[:3000]} [/INST]</s>"""
+
+    payload = {
+        "inputs": prompt,
+        "parameters": {
+            "max_new_tokens": 500,
+            "return_full_text": False
+        }
+    }
 
     try:
         with httpx.Client(timeout=timeout) as client:
-            resp = client.post(settings.HF_MCP_URL, json=payload, headers=headers)
+            resp = client.post(model_url, json=payload, headers=headers)
             resp.raise_for_status()
-            data = resp.json()
-            logger.debug("MCP response received", response=data)
-            return data
+            
+            # The API usually returns a list with the generated text
+            result = resp.json()
+            generated_text = result[0]['generated_text'] if isinstance(result, list) else result.get('generated_text', '')
+            
+            # Use regex to find the JSON block in case the model added chatter
+            json_match = re.search(r'\{.*\}', generated_text, re.DOTALL)
+            if json_match:
+                extracted_data = json.loads(json_match.group())
+                logger.info("Successfully extracted entities from HF")
+                return extracted_data
+            else:
+                logger.error("Could not find JSON in model response", response=generated_text)
+                raise MCPClientError("Invalid response format from model")
+
     except httpx.HTTPStatusError as e:
-        logger.error("MCP server returned bad status", status=e.response.status_code, text=e.response.text)
-        raise MCPClientError(f"MCP server error: {e.response.status_code}")
-    except httpx.RequestError as e:
-        logger.exception("Network error communicating with MCP server")
+        logger.error("HF API returned bad status", status=e.response.status_code, text=e.response.text)
+        raise MCPClientError(f"HF API error: {e.response.status_code}")
+    except json.JSONDecodeError:
+        logger.error("Failed to parse JSON from model output")
+        raise MCPClientError("JSON parsing error")
+    except Exception as e:
+        logger.exception("Error communicating with Hugging Face API")
         raise

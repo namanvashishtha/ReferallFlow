@@ -24,16 +24,18 @@ class PoliteLinkedInScraper:
         headers = {
             "User-Agent": "Mozilla/5.0 (compatible; ReferralForgeBot/1.0; +https://example.com/bot)"
         }
-        proxies = None
-        if proxy:
-            proxies = {
-                "http://": proxy,
-                "https://": proxy,
-            }
         try:
-            resp = await self.client.get(url, headers=headers, proxies=proxies)
-            resp.raise_for_status()
-            return resp.text
+            if proxy:
+                # httpx requires proxies to be set at client initialization.
+                # Since we want to rotate proxies, we use a temporary client for this request.
+                async with httpx.AsyncClient(proxies=proxy, timeout=30) as client:
+                    resp = await client.get(url, headers=headers)
+                    resp.raise_for_status()
+                    return resp.text
+            else:
+                resp = await self.client.get(url, headers=headers)
+                resp.raise_for_status()
+                return resp.text
         except httpx.HTTPStatusError as e:
             logger.error("HTTP error while fetching", url=url, status=e.response.status_code)
             raise ScraperError(str(e))

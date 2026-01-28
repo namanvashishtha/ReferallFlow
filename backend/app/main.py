@@ -19,17 +19,29 @@ if settings.CORS_ORIGINS:
         allow_headers=["*"],
     )
 
+from fastapi.staticfiles import StaticFiles
+from fastapi.responses import FileResponse
+import os
+
 app.include_router(auth.router, prefix=f"{settings.API_V1_STR}/auth", tags=["auth"])
 app.include_router(campaigns.router, prefix=f"{settings.API_V1_STR}/campaigns", tags=["campaigns"])
 app.include_router(orchestrator.router, prefix=f"{settings.API_V1_STR}/orchestrator", tags=["orchestrator"])
 
+# Define the absolute path to the frontend directory
+frontend_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "frontend"))
+
+# Serve static files from the frontend folder
+app.mount("/static", StaticFiles(directory=frontend_dir), name="static")
+
 @app.get("/")
-def read_root():
-    return {"message": f"Welcome to {settings.PROJECT_NAME} API"}
+async def serve_frontend():
+    # Serve the index.html file specifically for the root route
+    return FileResponse(os.path.join(frontend_dir, "index.html"))
 
 @app.get("/health")
 def health_check():
     return {"status": "ok", "app_name": settings.PROJECT_NAME}
+
 
 if __name__ == "__main__":
     import uvicorn
