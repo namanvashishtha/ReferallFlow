@@ -1,0 +1,18 @@
+Dear {{ recruiter_name }},
+
+I hope this email finds you well. I am writing to express my strong interest in the {{ position_title }} role at {{ company_name }}.
+
+With my background in {{ top_skills | join(', ') }}, I am confident I can bring immediate value to your team. Over the past {{ years_of_experience }} years, I have:
+
+{% for accomplishment in accomplishments %}
+- {{ accomplishment }}
+{% endfor %}
+
+I am particularly drawn to {{ company_name }} because {{ company_interest_reason }}.
+
+I would welcome the opportunity to discuss how my experience aligns with your needs. Please feel free to reach out at your convenience.
+
+Best regards,
+{{ candidate_name }}
+{{ candidate_email }}
+{{ candidate_phone }}
