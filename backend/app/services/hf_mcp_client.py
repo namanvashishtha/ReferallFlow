@@ -15,7 +15,7 @@ class MCPClientError(Exception):
 
 @retry(stop=stop_after_attempt(3), wait=wait_exponential(multiplier=1, min=2, max=10),
        retry=retry_if_exception_type((httpx.RequestError, MCPClientError)))
-def extract_entities_from_text(text: str, timeout: int = 60) -> Dict[str, Any]:
+async def extract_entities_from_text(text: str, timeout: int = 60) -> Dict[str, Any]:
     """Send text to Hugging Face Inference API and return parsed JSON entities.
     
     Uses an LLM (Mistral/Llama) to extract structured data from resume text.
@@ -41,12 +41,17 @@ Resume Text:
         "parameters": {
             "max_new_tokens": 500,
             "return_full_text": False
+        },
+        "options": {
+            "wait_for_model": True
         }
     }
 
     try:
-        with httpx.Client(timeout=timeout) as client:
-            resp = client.post(model_url, json=payload, headers=headers)
+        async with httpx.AsyncClient(timeout=timeout) as client:
+            resp = await client.post(model_url, json=payload, headers=headers)
+            if resp.status_code != 200:
+                logger.error("HF API error", status=resp.status_code, response=resp.text)
             resp.raise_for_status()
             
             # The API usually returns a list with the generated text
@@ -64,8 +69,18 @@ Resume Text:
                 raise MCPClientError("Invalid response format from model")
 
     except httpx.HTTPStatusError as e:
-        logger.error("HF API returned bad status", status=e.response.status_code, text=e.response.text)
-        raise MCPClientError(f"HF API error: {e.response.status_code}")
+        status_code = e.response.status_code
+        response_text = e.response.text
+        logger.error("HF API returned bad status", status=status_code, text=response_text)
+        
+        if status_code == 503:
+            raise MCPClientError("HF Model is currently loading, please try again in a few seconds")
+        elif status_code == 401:
+            raise MCPClientError("HF API token is invalid or expired")
+        elif status_code == 429:
+            raise MCPClientError("HF API rate limit exceeded")
+        
+        raise MCPClientError(f"HF API error: {status_code}")
     except json.JSONDecodeError:
         logger.error("Failed to parse JSON from model output")
         raise MCPClientError("JSON parsing error")

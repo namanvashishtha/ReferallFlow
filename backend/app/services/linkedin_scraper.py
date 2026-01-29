@@ -22,7 +22,7 @@ class PoliteLinkedInScraper:
 
     async def _fetch(self, url: str, proxy: Optional[str] = None) -> str:
         headers = {
-            "User-Agent": "Mozilla/5.0 (compatible; ReferralForgeBot/1.0; +https://example.com/bot)"
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
         }
         try:
             if proxy:
@@ -75,18 +75,35 @@ class PoliteLinkedInScraper:
     def _parse_job_listings(self, html: str, base_url: str) -> List[dict]:
         soup = BeautifulSoup(html, "lxml")
         jobs = []
-        # Simple heuristics for LinkedIn-like job cards
-        for card in soup.select(".result-card, .job-card-list__entity, .jobs-search-results__list-item"):
-            title = card.select_one(".job-result-card__title, .job-card-list__title")
-            company = card.select_one(".job-result-card__subtitle, .job-card-container__company-name")
-            location = card.select_one(".job-result-card__location, .job-card-container__metadata-item")
-            link = card.select_one("a")
-            jobs.append({
-                "title": title.get_text(strip=True) if title else None,
-                "company": company.get_text(strip=True) if company else None,
-                "location": location.get_text(strip=True) if location else None,
-                "url": link["href"] if link and link.has_attr("href") else base_url,
-            })
+        
+        # Modern LinkedIn public job search selectors
+        # They often use .base-card or .base-search-card
+        cards = soup.select(".base-card, .base-search-card, .result-card, .job-card-list__entity, .jobs-search-results__list-item")
+        
+        for card in cards:
+            # Title
+            title_el = card.select_one(".base-search-card__title, .job-result-card__title, .job-card-list__title, h3")
+            
+            # Company
+            company_el = card.select_one(".base-search-card__subtitle, .job-result-card__subtitle, .job-card-container__company-name, .hidden-nested-link")
+            
+            # Location
+            location_el = card.select_one(".job-search-card__location, .job-result-card__location, .job-card-container__metadata-item")
+            
+            # Link
+            link_el = card.select_one("a.base-card__full-link, a.result-card__full-link, a")
+            
+            if title_el:
+                jobs.append({
+                    "title": title_el.get_text(strip=True),
+                    "company": company_el.get_text(strip=True) if company_el else "Unknown Company",
+                    "location": location_el.get_text(strip=True) if location_el else "Remote",
+                    "url": link_el["href"] if link_el and link_el.has_attr("href") else base_url,
+                })
+        
+        if not jobs:
+            logger.warning("No jobs parsed from HTML, selectors might be outdated or page structure changed.")
+            
         return jobs
 
     async def close(self):

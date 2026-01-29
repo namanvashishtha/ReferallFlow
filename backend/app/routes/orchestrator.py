@@ -75,10 +75,10 @@ async def process_resume_job(payload: dict):
     # 1. Extract Entities (AI or Basic Fallback)
     entities = {}
     try:
-        entities = extract_entities_from_text(text)
+        entities = await extract_entities_from_text(text)
         logger.info("AI Entities extracted", entities=entities)
     except Exception as e:
-        logger.warning("AI Extraction failed or not configured, using fallback keyword matching", error=str(e))
+        logger.warning(f"AI Extraction failed/not configured: {str(e)}. Using fallback keyword matching.")
         # Basic fallback: extract common tech keywords
         common_skills = ["python", "javascript", "react", "fastapi", "sql", "aws", "docker", "kubernetes"]
         found_skills = [s for s in common_skills if s in text.lower()]
