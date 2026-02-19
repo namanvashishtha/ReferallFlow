@@ -24,27 +24,19 @@ async def extract_entities_from_text(text: str, timeout: int = 60) -> Dict[str, 
         logger.error("HF_MCP_TOKEN is not configured")
         raise MCPClientError("Hugging Face API token not configured")
 
-    model_url = f"{settings.HF_MCP_URL.rstrip('/')}/{settings.HF_MODEL_ID}"
+    model_url = settings.HF_MCP_URL
     headers = {"Authorization": f"Bearer {settings.HF_MCP_TOKEN}"}
     
-    prompt = f"""<s>[INST] Extract the following information from this resume text and return it ONLY as a valid JSON object:
-- candidate_name
-- top_skills (list of strings)
-- years_of_experience (as a number or string)
-- positions (list of job titles the candidate is qualified for)
-
-Resume Text:
-{text[:3000]} [/INST]</s>"""
+    messages = [
+        {"role": "system", "content": "You are a helpful assistant that extracts structured data from resume text. Always return ONLY valid JSON."},
+        {"role": "user", "content": f"Extract the following information from this resume text and return it ONLY as a valid JSON object:\n- candidate_name\n- top_skills (list of strings)\n- years_of_experience (as a number or string)\n- positions (list of job titles the candidate is qualified for)\n\nResume Text:\n{text[:3000]}"}
+    ]
 
     payload = {
-        "inputs": prompt,
-        "parameters": {
-            "max_new_tokens": 500,
-            "return_full_text": False
-        },
-        "options": {
-            "wait_for_model": True
-        }
+        "model": settings.HF_MODEL_ID,
+        "messages": messages,
+        "max_tokens": 500,
+        "temperature": 0.1
     }
 
     try:
@@ -54,9 +46,9 @@ Resume Text:
                 logger.error("HF API error", status=resp.status_code, response=resp.text)
             resp.raise_for_status()
             
-            # The API usually returns a list with the generated text
             result = resp.json()
-            generated_text = result[0]['generated_text'] if isinstance(result, list) else result.get('generated_text', '')
+            # New format for chat/completions
+            generated_text = result['choices'][0]['message']['content']
             
             # Use regex to find the JSON block in case the model added chatter
             json_match = re.search(r'\{.*\}', generated_text, re.DOTALL)

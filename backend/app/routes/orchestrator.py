@@ -4,6 +4,8 @@ import shutil
 import tempfile
 from pydantic import BaseModel
 from app.core.logging import get_logger
+from app.core.config import settings
+
 from app.services.hf_mcp_client import extract_entities_from_text
 from app.services.resume_service import extract_text_from_file
 
@@ -123,8 +125,9 @@ async def process_resume_job(payload: dict):
                 "company_interest_reason": "your innovative work in the industry",
                 "candidate_name": entities.get("candidate_name", "Naman"),
                 "candidate_email": email,
-                "candidate_phone": "+1-234-567-890"
+                "candidate_phone": settings.PHONE_NUMEBR
             }
+
             
             draft = render_application_template("application_email.txt", context)
             logger.info(f"Drafted application for {job.get('company')}")

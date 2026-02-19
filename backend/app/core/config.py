@@ -28,10 +28,10 @@ class Settings(BaseSettings):
     HUNTER_IO_API_KEY: str = ""
     SENDGRID_API_KEY: str = ""
     OPENAI_API_KEY: str = ""
-    # Hugging Face Inference API
-    HF_MCP_URL: str = "https://api-inference.huggingface.co/models"
+    # Hugging Face Inference Router (New)
+    HF_MCP_URL: str = "https://router.huggingface.co/v1/chat/completions"
     HF_MCP_TOKEN: str = ""
-    HF_MODEL_ID: str = "mistralai/Mistral-7B-Instruct-v0.3"
+    HF_MODEL_ID: str = "Qwen/Qwen2.5-7B-Instruct"
 
     # Rate limiting and scraping
     RATE_LIMIT_PER_MINUTE: int = 60
@@ -44,6 +44,8 @@ class Settings(BaseSettings):
     SMTP_USER: str = ""
     SMTP_PASSWORD: str = ""
     EMAIL_FROM: str = ""
+    PHONE_NUMEBR: str = ""
+
 
     # Logging
     LOG_LEVEL: str = "INFO"
